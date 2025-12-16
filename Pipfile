@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+psycopg2-binary = "*"
+netmiko = "*"
+paramiko = "*"
+ping3 = "*"
+pysnmp = "*"
+redis = "*"
+djangorestframework = "*"
+django-cors-headers = "*"
+python-decouple = "*"
+celery = "*"
+
+[dev-packages]
+black = "*"
+flake8 = "*"
+
+[requires]
+python_version = "3.14"
