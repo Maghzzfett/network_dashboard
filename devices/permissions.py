@@ -2,7 +2,7 @@
 from rest_framework import permissions
 
 class DjangoGroupPermission(permissions.BasePermission):
-    # Global permissions
+    # Global permissions for Authentication based on Django groups
     def has_permission(self, request, view):
         # Must be authenticated
         if not request.user.is_authenticated:
