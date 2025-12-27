@@ -16,7 +16,7 @@ from .models import (
     Alert
 )
 
-User = get_user_model()
+User = get_user_model() # Get the custom user model
 class CustomUserViewSet(viewsets.ModelViewSet):
     serializer_class = CustomUserSerializer
     permission_classes = [DjangoGroupPermission]

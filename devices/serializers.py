@@ -16,7 +16,8 @@ class NetworkDeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NetworkDevice
         fields = [
-        'id', 
+        'id',
+        'custome_user', 
         'name',
         'ip_address', 
         'device_type', 
@@ -29,6 +30,7 @@ class MetricSerializer(serializers.ModelSerializer):
         model = Metric
         fields = [
         'id',
+        'device_id',
         'timestamp', 
         'cpu_usage', 
         'memory_usage', 
@@ -44,13 +46,14 @@ class AlertSerializer(serializers.ModelSerializer):
         model = Alert
         fields = [
         'id',
+        'device_id',
+        'metric',
         'alert_type',
         'severity',
         'message',
-        'created_at',
         'status',
-        'first_triggered',
-        'last_triggered',
+        'first_triggered_at',
+        'last_triggered_at',
         'resolved_at',
         'payload'
     ]

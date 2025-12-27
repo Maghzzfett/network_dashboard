@@ -91,11 +91,11 @@ DATABASES = {
 # Django Rest Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication', # Enables session-based authentication for browsable API
+        'rest_framework.authentication.TokenAuthentication', # Enables token-based authentication
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'yourapp.permissions.RoleBasedPermission',
+        'devices.permissions.DjangoGroupPermission', # Custom permission class
     ],
 }
 
