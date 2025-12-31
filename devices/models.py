@@ -21,16 +21,24 @@ class CustomUser(AbstractUser):
 
 class NetworkDevice(models.Model):
     class DeviceTypes(models.TextChoices):
-        ROUTER = 'ROUTER', 'Router'
+        ROUTER = 'ROUTER', 'Router' # display format 'DATABASE', 'FIELD FORM WIDGET'
         SWITCH = 'SWITCH', 'Switch'
         FIREWALL = 'FIREWALL', 'Firewall'
         SERVER = 'SERVER', 'Server'
+
+    class StatusTypes(models.TextChoices):
+        ONLINE = 'ONLINE', 'Online'
+        OFFLINE = 'OFFLINE', 'Offline'
+        UNKNOWN = 'UNKNOWN', 'Unknown'
 
     custom_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='devices',
-        verbose_name='Owner'
+        verbose_name='Owner',
+        default=1,
+        null=False,
+        blank=False
     )
     name = models.CharField(
         max_length=100,
@@ -56,7 +64,19 @@ class NetworkDevice(models.Model):
         auto_now_add=True,
         verbose_name='Added On'
     )
-
+    # online/offline/unknown
+    status = models.CharField(
+        max_length=20,
+        choices=StatusTypes.choices,
+        verbose_name='Status',
+        default='UNKNOWN'
+    )
+    last_checked = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Last Checked At'
+    )
+    
     class Meta:
         ordering = ['name']
         indexes = [

@@ -19,9 +19,11 @@ class NetworkDeviceSerializer(serializers.ModelSerializer):
         'id',
         'custome_user', 
         'name',
-        'ip_address', 
+        'ip_address',
+        'status', 
         'device_type', 
-        'location'
+        'location',
+        'last_checked'
     ]
 
 class MetricSerializer(serializers.ModelSerializer):
