@@ -6,6 +6,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework import viewsets, permissions # Combines multiple views into one unit
 from .permissions import DjangoGroupPermission
 from .utils.network_tools import ping_device
+from .utils.network_tools import traceroute_device
 from django.utils import timezone
 
 from .serializers import (
@@ -63,6 +64,19 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
                 "ip_address": device.ip_address,
                 "status": device.status,
                 "last_checked": device.last_checked
+            }
+        )
+    
+    @action(detail=True, methods=["get"])
+    def traceroute(self, requrest, pk=None):
+        device=self.get_object()
+        trace_output = traceroute_device(device.ip_address)
+        return Response(
+            {
+                "device": device.name,
+                "ip_address": device.ip_address,
+                "traceroute": trace_output
+
             }
         )
 
