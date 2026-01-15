@@ -115,12 +115,6 @@ class Metric(models.Model):
         null=True,
         verbose_name='Memory Usage (%)'
     )
-    disk_usage = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        verbose_name='Disk Usage (%)'
-    )
     bandwidth_in = models.BigIntegerField(
         null=True,
         verbose_name='Inbound Bandwidth (bytes)'

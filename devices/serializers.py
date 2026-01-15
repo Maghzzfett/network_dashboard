@@ -36,7 +36,6 @@ class MetricSerializer(serializers.ModelSerializer):
         'timestamp', 
         'cpu_usage', 
         'memory_usage', 
-        'disk_usage', 
         'bandwidth_in', 
         'bandwidth_out'
     ]
