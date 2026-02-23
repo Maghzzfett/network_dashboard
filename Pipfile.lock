@@ -326,14 +326,6 @@
             "markers": "python_version >= '3.9'",
             "version": "==3.16.1"
         },
-        "exceptiongroup": {
-            "hashes": [
-                "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219",
-                "sha256:a7a39a3bd276781e98394987d3a5701d0c4edffb633bb7a5144577f82c773598"
-            ],
-            "markers": "python_version >= '3.7'",
-            "version": "==1.3.1"
-        },
         "invoke": {
             "hashes": [
                 "sha256:2413bc441b376e5cd3f55bb5d364f973ad8bdd7bf87e53c79de3c11bf3feecc8",

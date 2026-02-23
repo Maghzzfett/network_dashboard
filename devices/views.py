@@ -5,9 +5,10 @@ from django.contrib.auth import get_user_model
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import viewsets, permissions # Combines multiple views into one unit
 from .permissions import DjangoGroupPermission
-from .utils.network_tools import ping_device
-from .utils.network_tools import traceroute_device
+from .utils.network_tools import ping_device, traceroute_device
+from .poller import snmp_get, poll_device
 from django.utils import timezone
+from django.utils.timezone import now
 
 from .serializers import (
     CustomUserSerializer,
@@ -84,6 +85,42 @@ class MetricViewSet(viewsets.ModelViewSet):
     queryset = Metric.objects.all()
     serializer_class = MetricSerializer
     permission_classes = [DjangoGroupPermission]
+
+    @action(detail=True, methods=["post"])
+    def poll(self, request, pk=None):
+        """
+        Custom endpoint: POST /metrics/{id}/poll/
+        Runs the poller for the given device and stores metrics.
+        """
+        device = self.get_object()  # fetch the device instance
+
+        # Retrieve previous counters if available
+        prev_metric = (
+            Metric.objects.filter(device=device, metric_name="bandwidth_in")
+            .order_by("-created_at")
+            .first()
+        )
+        prev_in, prev_out, prev_time = None, None, None
+        if prev_metric:
+            # You could store prev_in/out/time in a separate table or cache
+            # For simplicity, assume you have them in Metric or another model
+            prev_in = getattr(prev_metric, "prev_in", None)
+            prev_out = getattr(prev_metric, "prev_out", None)
+            prev_time = getattr(prev_metric, "prev_time", None)
+
+        # Run the poller
+        in_octets, out_octets, poll_time = poll_device(
+            device, prev_in=prev_in, prev_out=prev_out, prev_time=prev_time
+        )
+
+        return Response({
+            "device": device.id,
+            "in_octets": in_octets,
+            "out_octets": out_octets,
+            "poll_time": poll_time,
+        })
+
+
 
 class AlertViewSet(viewsets.ModelViewSet):
     queryset = Alert.objects.all()

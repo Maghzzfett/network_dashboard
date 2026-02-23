@@ -38,6 +38,7 @@ class MetricSerializer(serializers.ModelSerializer):
         'memory_usage', 
         'bandwidth_in', 
         'bandwidth_out'
+        'uptime'
     ]
 
 class AlertSerializer(serializers.ModelSerializer):

@@ -9,12 +9,12 @@ psycopg2-binary = "*"
 netmiko = "*" # for network device automation 
 paramiko = "*"
 ping3 = "*"
-pysnmp = "*"
 redis = "*" # for caching and message brokering
 djangorestframework = "*"
 django-cors-headers = "*"
 python-decouple = "*"
 celery = "*" # for asynchronous task management
+pysnmp = "*"
 
 [dev-packages]
 black = "*"

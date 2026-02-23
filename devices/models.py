@@ -26,6 +26,11 @@ class NetworkDevice(models.Model):
         FIREWALL = 'FIREWALL', 'Firewall'
         SERVER = 'SERVER', 'Server'
 
+    class DeviceVendors(models.TextChoices):
+        CISCO = 'CISCO', 'Cisco'
+        JUNIPER = 'JUNIPER', 'Juniper'
+        MIKROTIK = 'MIKROTIK', 'Mikrotik'
+
     class StatusTypes(models.TextChoices):
         ONLINE = 'ONLINE', 'Online'
         OFFLINE = 'OFFLINE', 'Offline'
@@ -52,6 +57,11 @@ class NetworkDevice(models.Model):
         max_length=20,
         choices= DeviceTypes.choices,
         verbose_name='Device Type'
+    )
+    device_vendor = models.CharField(
+        max_length=20,
+        choices= DeviceVendors.choices,
+        verbose_name='Device Vendor'
     )
 
     location = models.CharField(
@@ -99,30 +109,23 @@ class Metric(models.Model):
         related_name='metric',
         verbose_name='Network Device'
     )
+    metric_type = models.CharField(
+        max_length=32,
+        verbose_name='Metric Type'
+    )
+    value = models.FloatField(
+        verbose_name='Metric Value'
+    )
+    units = models.CharField(
+        max_length=20,
+        default='bps',
+        verbose_name='Units'
+    )
     timestamp = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Recorded At'
     )
-    cpu_usage = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        verbose_name='CPU Usage (%)'
-    )
-    memory_usage = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        verbose_name='Memory Usage (%)'
-    )
-    bandwidth_in = models.BigIntegerField(
-        null=True,
-        verbose_name='Inbound Bandwidth (bytes)'
-    )
-    bandwidth_out = models.BigIntegerField(
-        null=True,
-        verbose_name='Outbound Bandwidth (bytes)'
-    )
+  
     class Meta:
         ordering = ['-timestamp'] # newest first
         indexes = [
@@ -131,7 +134,7 @@ class Metric(models.Model):
             )
         ]
     def __str__ (self):
-        return f'Metric for {self.device_id.name} at {self.timestamp}'
+        return f"{self.device.type} - {self.metric_type}: {self.value} {self.units} at {self.timestamp}"
 
 class Alert(models.Model):
     class AlertType(models.TextChoices):
