@@ -22,6 +22,7 @@ class NetworkDeviceSerializer(serializers.ModelSerializer):
         'ip_address',
         'status', 
         'device_type', 
+        'device_vendor',
         'location',
         'last_checked'
     ]
@@ -33,12 +34,10 @@ class MetricSerializer(serializers.ModelSerializer):
         fields = [
         'id',
         'device_id',
-        'timestamp', 
-        'cpu_usage', 
-        'memory_usage', 
-        'bandwidth_in', 
-        'bandwidth_out'
-        'uptime'
+        'timestamp',
+        'metric_type',
+        'value',
+        'units'
     ]
 
 class AlertSerializer(serializers.ModelSerializer):

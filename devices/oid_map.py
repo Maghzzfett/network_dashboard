@@ -1,3 +1,5 @@
+# This file is responsble for storing the OID mappings for
+#  standard and different vendors
 OID_MAP = {
     # Vendor-specific OIDs for bandwidth and uptime
     "cpu_usage": {

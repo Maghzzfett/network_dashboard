@@ -4,7 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "*"
+django = "==5.0.3"
+pysnmp = "==4.4.12"
+pyasn1 = "==0.4.8"
+pyasn1-modules = "==0.2.8"
 psycopg2-binary = "*"
 netmiko = "*" # for network device automation 
 paramiko = "*"
@@ -14,11 +17,10 @@ djangorestframework = "*"
 django-cors-headers = "*"
 python-decouple = "*"
 celery = "*" # for asynchronous task management
-pysnmp = "*"
 
 [dev-packages]
 black = "*"
 flake8 = "*"
 
 [requires]
-python_version = "3.14"
+python_version = "3.11"

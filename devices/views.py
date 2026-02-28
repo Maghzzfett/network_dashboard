@@ -86,17 +86,17 @@ class MetricViewSet(viewsets.ModelViewSet):
     serializer_class = MetricSerializer
     permission_classes = [DjangoGroupPermission]
 
-    @action(detail=True, methods=["post"])
-    def poll(self, request, pk=None):
+    @action(detail=True, methods=["GET"])
+    def poll_device(self, request, pk=None):
         """
-        Custom endpoint: POST /metrics/{id}/poll/
+        Custom endpoint: GET /metrics/{id}/poll/
         Runs the poller for the given device and stores metrics.
         """
         device = self.get_object()  # fetch the device instance
 
         # Retrieve previous counters if available
         prev_metric = (
-            Metric.objects.filter(device=device, metric_name="bandwidth_in")
+            Metric.objects.filter(device=device, metric_type="bandwidth_in")
             .order_by("-created_at")
             .first()
         )

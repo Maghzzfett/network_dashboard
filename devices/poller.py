@@ -1,3 +1,6 @@
+# This file contains the core logic for polling devices via SNMP,
+# collecting metrics, and storing them in the database. It uses the OID mappings
+from .oid_map import OID_MAP
 from pysnmp.hlapi import (
     ObjectType, ObjectIdentity,
     getCmd, SnmpEngine,
@@ -5,7 +8,8 @@ from pysnmp.hlapi import (
     ContextData
 )
 from django.utils.timezone import now
-from .models import Metric, OID_MAP
+from .models import Metric
+
 
 
 def snmp_get(ip, oids, community="public"):
