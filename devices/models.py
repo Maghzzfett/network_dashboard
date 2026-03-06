@@ -84,8 +84,9 @@ class NetworkDevice(models.Model):
         default='UNKNOWN'
     )
     last_checked = models.DateTimeField(
+        auto_now=True,
         null=True,
-        blank=True,
+        blank= True,
         verbose_name='Last Checked At'
     )
     

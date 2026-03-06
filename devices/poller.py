@@ -67,8 +67,8 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
     ]
 
     # Add vendor-specific CPU/Memory OIDs if available
-    cpu_oid = OID_MAP["cpu_usage"].get(device.vendor)
-    mem_oid = OID_MAP["memory_usage"].get(device.vendor)
+    cpu_oid = OID_MAP["cpu_usage"].get(device.device_vendor)
+    mem_oid = OID_MAP["memory_usage"].get(device.device_vendor)
     if cpu_oid:
         oids.append(cpu_oid)
     if mem_oid:
@@ -83,7 +83,7 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
     # --- Uptime ---
     uptime_ticks = results.get(OID_MAP["uptime"]["standard"])
     if uptime_ticks is not None:
-        Metric.objects.create(device=device, metric_name="uptime", value=uptime_ticks, unit="ticks")
+        Metric.objects.create(device=device, metric_type="uptime", value=uptime_ticks, unit="ticks")
 
     # --- Capacity (standard vs highcapacity) ---
     capacity_bps = results.get(OID_MAP["ifSpeed"]["standard"])
@@ -116,19 +116,19 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
         delta_in = (in_octets - prev_in) * 8 / delta_t
         delta_out = (out_octets - prev_out) * 8 / delta_t
 
-        Metric.objects.create(device=device, metric_name="bandwidth_in", value=delta_in, unit="bps")
-        Metric.objects.create(device=device, metric_name="bandwidth_out", value=delta_out, unit="bps")
+        Metric.objects.create(device=device, metric_type="bandwidth_in", value=delta_in, unit="bps")
+        Metric.objects.create(device=device, metric_type="bandwidth_out", value=delta_out, unit="bps")
 
     # --- CPU Usage ---
     if cpu_oid:
         cpu_value = results.get(cpu_oid)
         if cpu_value is not None:
-            Metric.objects.create(device=device, metric_name="cpu_usage", value=cpu_value, unit="%")
+            Metric.objects.create(device=device, metric_type="cpu_usage", value=cpu_value, unit="%")
 
     # --- Memory Usage ---
     if mem_oid:
         mem_value = results.get(mem_oid)
         if mem_value is not None:
-            Metric.objects.create(device=device, metric_name="memory_usage", value=mem_value, unit="%")
+            Metric.objects.create(device=device, metric_type="memory_usage", value=mem_value, unit="%")
 
     return in_octets, out_octets, now()

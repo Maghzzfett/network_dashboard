@@ -19,7 +19,7 @@ OID_MAP = {
     },
     "ifSpeed": {
         "standard": "1.3.6.1.2.1.2.2.1.5", # 100 Mbps or less
-        "highspeed": "1.3.6.1.2.1.31.1.1.1.15" # 1 Gbps or more
+        "highcapacity": "1.3.6.1.2.1.31.1.1.1.15" # 1 Gbps or more
     },
     "ifInOctets": {
         "standard": "1.3.6.1.2.1.2.2.1.10",

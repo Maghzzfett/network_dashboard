@@ -86,7 +86,7 @@ class MetricViewSet(viewsets.ModelViewSet):
     serializer_class = MetricSerializer
     permission_classes = [DjangoGroupPermission]
 
-    @action(detail=True, methods=["GET"])
+    @action(detail=True, methods=["get"])
     def poll_device(self, request, pk=None):
         """
         Custom endpoint: GET /metrics/{id}/poll/
