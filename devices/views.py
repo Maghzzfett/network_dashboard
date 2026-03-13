@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework import viewsets, permissions # Combines multiple views into one unit
 from .permissions import DjangoGroupPermission
 from .utils.network_tools import ping_device, traceroute_device
-from .poller import snmp_get, poll_device
+from .poller import poll_device
 from django.utils import timezone
 from django.utils.timezone import now
 
@@ -80,24 +80,20 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
 
             }
         )
-
-class MetricViewSet(viewsets.ModelViewSet):
-    queryset = Metric.objects.all()
-    serializer_class = MetricSerializer
-    permission_classes = [DjangoGroupPermission]
-
+    
     @action(detail=True, methods=["get"])
     def poll_device(self, request, pk=None):
         """
-        Custom endpoint: GET /metrics/{id}/poll/
+        Custom endpoint: GET /api/devices/{id}/poll_device/
         Runs the poller for the given device and stores metrics.
+        Returns all calculated metric types.
         """
         device = self.get_object()  # fetch the device instance
 
         # Retrieve previous counters if available
         prev_metric = (
-            Metric.objects.filter(device=device, metric_type="bandwidth_in")
-            .order_by("-created_at")
+            Metric.objects.filter(device_id=device, metric_type="bandwidth_in")
+            .order_by("-timestamp")
             .first()
         )
         prev_in, prev_out, prev_time = None, None, None
@@ -109,16 +105,49 @@ class MetricViewSet(viewsets.ModelViewSet):
             prev_time = getattr(prev_metric, "prev_time", None)
 
         # Run the poller
-        in_octets, out_octets, poll_time = poll_device(
+        poll_result = poll_device(
             device, prev_in=prev_in, prev_out=prev_out, prev_time=prev_time
         )
 
+        # Check if poll failed (SNMP unreachable or error)
+        if poll_result[0] is None and poll_result[1] is None:
+            return Response({
+                "device": device.id,
+                "device_name": device.name,
+                "error": "SNMP poll failed - device unreachable or SNMP not properly configured",
+                "details": {
+                    "ip_address": device.ip_address,
+                    "vendor": device.device_vendor,
+                    "tips": [
+                        "Verify device IP is reachable: ping {}".format(device.ip_address),
+                        "Check SNMP community string (default: 'public')",
+                        "Ensure SNMP is enabled on the device",
+                        "Verify OID mappings for {}".format(device.device_vendor or "unknown vendor")
+                    ]
+                },
+                "metrics": [],
+            }, status=503)
+
+        # Retrieve all metrics created for this device
+        metrics = Metric.objects.filter(device_id=device).order_by("-timestamp")
+        serialized_metrics = MetricSerializer(metrics, many=True).data
+
         return Response({
             "device": device.id,
-            "in_octets": in_octets,
-            "out_octets": out_octets,
-            "poll_time": poll_time,
+            "device_name": device.name,
+            "status": "success",
+            "poll_result": {
+                "in_octets": poll_result[0],
+                "out_octets": poll_result[1],
+                "timestamp": poll_result[2].isoformat()
+            },
+            "metrics": serialized_metrics,
         })
+
+class MetricViewSet(viewsets.ModelViewSet):
+    queryset = Metric.objects.all()
+    serializer_class = MetricSerializer
+    permission_classes = [DjangoGroupPermission]
 
 
 

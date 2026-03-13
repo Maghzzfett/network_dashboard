@@ -15,4 +15,10 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('role', 'is_staff', 'is_active')
 
 admin.site.register(NetworkDevice)
-admin.site.register(Metric)
+
+@admin.register(Metric)
+class MetricAdmin(admin.ModelAdmin):
+    list_display = ('device_id', 'metric_type', 'value', 'units', 'timestamp')
+    list_filter = ('metric_type', 'timestamp')
+    search_fields = ('device_id__name', 'metric_type')
+    readonly_fields = ('timestamp',)

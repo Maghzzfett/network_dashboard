@@ -72,6 +72,12 @@ class NetworkDevice(models.Model):
         null=True,
         verbose_name='Location'
     )
+    snmp_community = models.CharField(
+        max_length=100,
+        default='public',
+        verbose_name='SNMP Community String',
+        help_text='Community string for SNMP queries (default: public)'
+    )
     added_on = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Added On'

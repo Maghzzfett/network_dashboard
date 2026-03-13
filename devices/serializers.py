@@ -24,6 +24,7 @@ class NetworkDeviceSerializer(serializers.ModelSerializer):
         'device_type', 
         'device_vendor',
         'location',
+        'snmp_community',
         'last_checked'
     ]
 

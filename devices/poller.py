@@ -74,8 +74,8 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
     if mem_oid:
         oids.append(mem_oid)
 
-    # Perform one SNMP GET for all OIDs
-    results = snmp_get(device.ip_address, oids)
+    # Perform one SNMP GET for all OIDs using device's community string
+    results = snmp_get(device.ip_address, oids, community=device.snmp_community)
 
     if not results:
         return None, None, now()  # device unreachable or error
@@ -83,7 +83,7 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
     # --- Uptime ---
     uptime_ticks = results.get(OID_MAP["uptime"]["standard"])
     if uptime_ticks is not None:
-        Metric.objects.create(device=device, metric_type="uptime", value=uptime_ticks, unit="ticks")
+        Metric.objects.create(device_id=device, metric_type="uptime", value=uptime_ticks, units="ticks")
 
     # --- Capacity (standard vs highcapacity) ---
     capacity_bps = results.get(OID_MAP["ifSpeed"]["standard"])
@@ -96,7 +96,7 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
         if capacity_mbps:
             capacity_bps = capacity_mbps * 1_000_000  # convert Mbps → bps
 
-    Metric.objects.create(device=device, metric_name="capacity_bps", value=capacity_bps, unit="bps")
+    Metric.objects.create(device_id=device, metric_type="capacity_bps", value=capacity_bps, units="bps")
 
     # --- In/Out Octets (standard vs highcapacity) ---
     in_octets = results.get(OID_MAP["ifInOctets"]["standard"])
@@ -116,19 +116,19 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
         delta_in = (in_octets - prev_in) * 8 / delta_t
         delta_out = (out_octets - prev_out) * 8 / delta_t
 
-        Metric.objects.create(device=device, metric_type="bandwidth_in", value=delta_in, unit="bps")
-        Metric.objects.create(device=device, metric_type="bandwidth_out", value=delta_out, unit="bps")
+        Metric.objects.create(device_id=device, metric_type="bandwidth_in", value=delta_in, units="bps")
+        Metric.objects.create(device_id=device, metric_type="bandwidth_out", value=delta_out, units="bps")
 
     # --- CPU Usage ---
     if cpu_oid:
         cpu_value = results.get(cpu_oid)
         if cpu_value is not None:
-            Metric.objects.create(device=device, metric_type="cpu_usage", value=cpu_value, unit="%")
+            Metric.objects.create(device_id=device, metric_type="cpu_usage", value=cpu_value, units="%")
 
     # --- Memory Usage ---
     if mem_oid:
         mem_value = results.get(mem_oid)
         if mem_value is not None:
-            Metric.objects.create(device=device, metric_type="memory_usage", value=mem_value, unit="%")
+            Metric.objects.create(device_id=device, metric_type="memory_usage", value=mem_value, units="%")
 
     return in_octets, out_octets, now()
