@@ -148,10 +148,7 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
 
 class MetricViewSet(
     mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet # Provides the base for all other mixins, but does not implement any actions itself
 ):
     queryset = Metric.objects.all()
     serializer_class = MetricSerializer
@@ -160,11 +157,10 @@ class MetricViewSet(
 
 
 class AlertViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet
+    mixins.ListModelMixin,# For listing all alerts, especially for admin and viewers
+    mixins.RetrieveModelMixin, # For alert details view, especially when clicking on an alert
+    mixins.UpdateModelMixin, # Most heavy used operation in alert management
+    viewsets.GenericViewSet 
 ):
     queryset = Alert.objects.all()
     serializer_class = AlertSerializer
