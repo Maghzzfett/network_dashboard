@@ -152,12 +152,15 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 
-# This code is responsible for storing periodic task schedules for Celery beat 
-# and pushes to the Redis broker to be picked up by Celery workers
-# Register the periodi task with Celery beat
+# Celery Beat Periodic Tasks Schedule
+# Tasks are automatically picked up by Celery Beat and pushed to Redis
 CELERY_BEAT_SCHEDULE = {
     'poll-devices-every-60-seconds': {
-        'task' : 'devices.tasks.poll_all_devices',
-        'schedule' : 60.0, # every 60 seconds
+        'task': 'devices.tasks.poll_all_devices',
+        'schedule': 60.0,  # every 60 seconds
+    },
+    'update-device-status-every-5-minutes': {
+        'task': 'devices.tasks.update_device_status',
+        'schedule': 300.0,  # every 5 minutes (300 seconds)
     }
 }
