@@ -1,28 +1,19 @@
 # Global role-based permissions for device views
 from rest_framework import permissions
+from .utils.helpers import PermissionHelper
+
 
 class DjangoGroupPermission(permissions.BasePermission):
-    # Global permissions for Authentication based on Django groups
-    def has_permission(self, request, view):
-        # Must be authenticated
-        if not request.user.is_authenticated:
-            return False
-        # Admins have full access
-        if request.user.groups.filter(name='Admin').exists():
-            return True
-        # Viewers can only read
-        elif request.user.groups.filter(name='Viewer').exists():
-            return request.method in permissions.SAFE_METHODS
-        
-        return False # Default deny access
+    """Global permissions based on Django groups"""
     
-    # Object-level permissions
+    def has_permission(self, request, view):
+        return PermissionHelper.can_read(request.user)
+    
     def has_object_permission(self, request, view, obj):
         # Admins can access any object
-        if request.user.groups.filter(name='Admin').exists():
+        if PermissionHelper.is_admin(request.user):
             return True
-        # Viewers can only read objects
-        elif request.user.groups.filter(name='Viewer').exists():
+        # Viewers can only read
+        if PermissionHelper.is_viewer(request.user):
             return request.method in permissions.SAFE_METHODS
-    
-        return False # Default deny access
+        return False

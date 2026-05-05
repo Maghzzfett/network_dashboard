@@ -1,0 +1,22 @@
+# SNMP and Device Monitoring Constants
+SNMP_DEFAULT_COMMUNITY = "public"
+SNMP_PORT = 161
+SNMP_TIMEOUT = 5
+
+# Network Connectivity
+PING_TIMEOUT = 5
+TRACEROUTE_TIMEOUT = 30
+DEFAULT_MAX_HOPS = 30
+DEVICE_STATUS_CHECK_TIMEOUT = 5
+
+# Network Interface Speed Thresholds (bits per second)
+INTERFACE_SPEED_STANDARD_THRESHOLD = 100_000_000  # 100 Mbps
+INTERFACE_SPEED_HIGHCAPACITY_THRESHOLD = 1_000_000_000  # 1 Gbps
+
+# Alert Configuration
+DEFAULT_RECURRENCE_COUNT = 1
+DEFAULT_ALERT_DURATION_SECONDS = 300  # 5 minutes
+
+# Django Groups
+ADMIN_GROUP = "Admin"
+VIEWER_GROUP = "Viewer"

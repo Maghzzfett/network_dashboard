@@ -4,6 +4,12 @@ from django.contrib.auth.models import AbstractUser # django built-in user model
 from django.conf import settings # to reference the custom user model
 
 
+class SeverityChoices(models.TextChoices):
+    INFO = "INFO", "Info"
+    WARNING = "WARN", "Warning"
+    CRITICAL = "CRIT", "Critical"
+
+
 class CustomUser(AbstractUser):
     class Roles(models.TextChoices):
         ADMIN = 'ADMIN', 'Admin'
@@ -36,7 +42,7 @@ class NetworkDevice(models.Model):
         OFFLINE = 'OFFLINE', 'Offline'
         UNKNOWN = 'UNKNOWN', 'Unknown'
 
-    custom_user = models.ForeignKey(
+    custom_id = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='devices',
@@ -111,27 +117,58 @@ class NetworkDevice(models.Model):
     def __str__(self):
         return f'{self.name} ({self.ip_address})'
 
+class MetricType(models.Model):
+    class MetricNames(models.TextChoices):
+        CPU = "CPU", "cpu (%)"
+        MEMORY = "Memory", "memory (GB)"
+        BANDWIDTH_IN = "Bandwidth In", "bandwidth_in (bps)"
+        BANDWIDTH_OUT = "Bandwidth Out", "bandwidth_out (bps)"
+        UPTIME = "Uptime", "uptime (ticks)"
+        CAPACITY = "Capacity", "capacity (bps)"
+
+    class MetricUnits(models.TextChoices):
+        PERCENT = "%", "Percent"
+        GB = "GB", "Gigabytes"
+        BPS = "bps", "Bits per second"
+        TICKS = "ticks", "System ticks"
+
+    name = models.CharField(
+        max_length=32,
+        choices=MetricNames.choices,
+        unique=True,
+        verbose_name='Metric Type Name'
+    )
+    unit = models.CharField(
+        max_length=20,
+        choices=MetricUnits.choices,
+        verbose_name='Unit of Measurement',
+    
+    )
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Metric Type'
+        verbose_name_plural = 'Metric Types'
+
+    def __str__(self):
+        return f"{self.name} ({self.unit})"
+
 class Metric(models.Model):
-    device_id= models.ForeignKey(
+    device= models.ForeignKey(
         NetworkDevice, 
         on_delete=models.CASCADE,
         related_name='metric',
         verbose_name='Network Device'
     )
-    metric_type = models.CharField(
-        max_length=32,
-        default='unknown',
+    metric= models.ForeignKey(
+        MetricType,
+        on_delete=models.PROTECT,
         verbose_name='Metric Type'
     )
     value = models.FloatField(
         null=True,
         blank=True,
         verbose_name='Metric Value'
-    )
-    units = models.CharField(
-        max_length=20,
-        default='bps',
-        verbose_name='Units'
     )
     timestamp = models.DateTimeField(
         auto_now_add=True,
@@ -142,26 +179,91 @@ class Metric(models.Model):
         ordering = ['-timestamp'] # newest first
         indexes = [
             models.Index(
-                fields=['device_id', 'timestamp']
+                fields=['device', 'timestamp']
             )
         ]
     def __str__ (self):
-        return f"{self.device.type} - {self.metric_type}: {self.value} {self.units} at {self.timestamp}"
+        return f"{self.device.type} - {self.metric.name}: {self.value} at {self.timestamp}"
+
+class AlertThreshold(models.Model):
+    class Condition(models.TextChoices):
+        GREATER_THAN = ">", "Greater than"
+        LESS_THAN = "<", "Less than"
+        GREATER_EQUAL = ">=", "Greater than or equal"
+        LESS_EQUAL = "<=", "Less than or equal"
+        EQUAL = "==", "Equal"
+
+    device = models.ForeignKey(
+        NetworkDevice,
+        on_delete=models.CASCADE,
+        related_name="alert_thresholds",
+        verbose_name="Network Device"
+    )
+    
+    metric_type = models.ForeignKey(
+        MetricType,
+        on_delete=models.PROTECT,
+        verbose_name="Metric Type"
+    )
+    
+    threshold_value = models.FloatField(
+        verbose_name="Threshold Value",
+        help_text="e.g., 80 for CPU percentage"
+    )
+    
+    condition = models.CharField(
+        max_length=2,
+        choices=Condition.choices,
+        default=">",
+        verbose_name="Condition Operator"
+    )
+    
+    duration_seconds = models.IntegerField(
+        default=300,
+        verbose_name="Duration (seconds)",
+        help_text="Alert only fires if condition persists for this duration"
+    )
+    
+    severity = models.CharField(
+        max_length=8,
+        choices=SeverityChoices.choices,
+        default=SeverityChoices.WARNING,
+        verbose_name="Alert Severity"
+    )
+    
+    is_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Enabled"
+    )
+    
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Description"
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Created At"
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Updated At"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("device", "metric_type")
+        indexes = [
+            models.Index(fields=["device", "is_enabled"]),
+            models.Index(fields=["metric_type"]),
+        ]
+
+    def __str__(self):
+        return f"{self.device.name} - {self.metric_type.name} {self.condition} {self.threshold_value}"
 
 class Alert(models.Model):
-    class AlertType(models.TextChoices):
-        CPU = "CPU", "CPU"
-        MEMORY = "MEM", "Memory"
-        DISK = "DISK", "Disk"
-        BANDWIDTH_IN = "BW_IN", "Bandwidth In"
-        BANDWIDTH_OUT = "BW_OUT", "Bandwidth Out"
-        CUSTOM = "CUSTOM", "Custom"
-
-    class Severity(models.TextChoices):
-        INFO = "INFO", "Info"
-        WARNING = "WARN", "Warning"
-        CRITICAL = "CRIT", "Critical"
-
     class Status(models.TextChoices):
         ACTIVE = "ACTIVE", "Active"
         ACKED = "ACKED", "Acknowledged"
@@ -173,15 +275,23 @@ class Alert(models.Model):
         verbose_name='Network Devide',
         related_name="alerts"
     )
-    alert_type = models.CharField(
-        max_length=32, 
-        choices=AlertType.choices,
+    threshold = models.ForeignKey(
+        "AlertThreshold",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="triggered_alerts",
+        verbose_name="Triggered By Threshold"
+    )
+    alert_type = models.ForeignKey(
+        "MetricType",
+        on_delete=models.PROTECT,
         verbose_name='Alert Type'
     )
     severity = models.CharField(
         max_length=8,
-        choices=Severity.choices, 
-        default=Severity.WARNING,
+        choices=SeverityChoices.choices, 
+        default=SeverityChoices.WARNING,
         verbose_name='Severity'
     )
     status = models.CharField(
@@ -191,14 +301,24 @@ class Alert(models.Model):
         verbose_name='Status',
     )
 
+    # Track how many times this specific alert has recurred
+    # Incremented when the same alert fires again (same device/alert_type)
+    recurrence_count = models.IntegerField(
+        default=1,
+        verbose_name='Recurrence Count',
+        help_text='Number of times this alert has been triggered'
+    )
+
     # Optional link back to the metric row that caused this alert
+    # Applies to: CPU, MEMORY, BANDWIDTH_IN, BANDWIDTH_OUT
+    # Can be null for alerts triggered by device status changes (e.g., device offline)
     metric = models.ForeignKey(
         "Metric", 
         null=True, 
         blank=True, 
         on_delete=models.SET_NULL,
         related_name='metrics_alerts',
-        verbose_name='Related Metrix'
+        verbose_name='Related Metric'
     )
 
     # Free-form human message and optional structured payload
@@ -243,5 +363,5 @@ class Alert(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.get_severity_display()} {self.get_alert_type_display()} on {self.device.name} ({self.status})"
+        return f"{self.get_severity_display()} {self.alert_type.name} on {self.device.name} ({self.status})"
     

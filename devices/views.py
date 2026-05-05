@@ -5,7 +5,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import viewsets, permissions # Combines multiple views into one unit
 from .permissions import DjangoGroupPermission
-from .utils.network_tools import ping_device, traceroute_device
+from .utils.network_tools import ping_device, traceroute_device, PingException, TracerouteException
+from .utils.helpers import PermissionHelper, DeviceHelper
 from .poller import poll_device
 from django.utils import timezone
 from django.utils.timezone import now
@@ -31,7 +32,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         # Admin can see all users
-        if user.groups.filter(name='Admin').exists():
+        if PermissionHelper.is_admin(user):
             return User.objects.all()
         # Viewers see themselves only
         return User.objects.filter(id=user.id)
@@ -40,7 +41,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         obj = super().get_object()
         user = self.request.user
         # Admin can access any user
-        if user.groups.filter(name='Admin').exists():
+        if PermissionHelper.is_admin(user):
             return obj
         # Viewers can access only themselves
         elif obj.id != user.id:
@@ -51,37 +52,32 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
     queryset = NetworkDevice.objects.all() #
     serializer_class = NetworkDeviceSerializer
     permission_classes = [DjangoGroupPermission]
-    
     # Note: Automatic device status exists via Celery task,though
     # This is a manual endpoint to check status on demand.
     @action(detail=True, methods=["get"])
-    def status(self, request,pk=None):
-        device=self.get_object()
-        reachable = ping_device(device.ip_address)
-        device.status = "online" if reachable else "offline"
-        device.last_checked = timezone.now()
-        device.save()
-        return Response(
-            {
-                "device": device.name,
-                "ip_address": device.ip_address,
-                "status": device.status,
-                "last_checked": device.last_checked
-            }
-        )
+    def status(self, request, pk=None):
+        """Get device status by pinging the device"""
+        device = self.get_object()
+        try:
+            reachable = ping_device(device.ip_address)
+            DeviceHelper.update_device_status(device, reachable)
+            return Response(DeviceHelper.get_device_status_response(device))
+        except PingException as e:
+            return Response({"error": str(e)}, status=400)
     
     @action(detail=True, methods=["get"])
-    def traceroute(self, requrest, pk=None):
-        device=self.get_object()
-        trace_output = traceroute_device(device.ip_address)
-        return Response(
-            {
+    def traceroute(self, request, pk=None):
+        """Get traceroute to device"""
+        device = self.get_object()
+        try:
+            trace_output = traceroute_device(device.ip_address)
+            return Response({
                 "device": device.name,
                 "ip_address": device.ip_address,
                 "traceroute": trace_output
-
-            }
-        )
+            })
+        except TracerouteException as e:
+            return Response({"error": str(e)}, status=400)
     
     @action(detail=True, methods=["get"])
     def poll_device(self, request, pk=None):
@@ -94,7 +90,7 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
 
         # Retrieve previous counters if available
         prev_metric = (
-            Metric.objects.filter(device_id=device, metric_type="bandwidth_in")
+            Metric.objects.filter(device=device, metric_type="bandwidth_In")
             .order_by("-timestamp")
             .first()
         )
@@ -131,7 +127,7 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
             }, status=503)
 
         # Retrieve all metrics created for this device
-        metrics = Metric.objects.filter(device_id=device).order_by("-timestamp")
+        metrics = Metric.objects.filter(device=device).order_by("-timestamp")
         serialized_metrics = MetricSerializer(metrics, many=True).data
 
         return Response({
@@ -147,7 +143,7 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
         })
 
 class MetricViewSet(
-    mixins.ListModelMixin,
+    mixins.ListModelMixin,# For listing all metrics, especially for admin and viewers
     viewsets.GenericViewSet # Provides the base for all other mixins, but does not implement any actions itself
 ):
     queryset = Metric.objects.all()

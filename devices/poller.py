@@ -1,6 +1,7 @@
 # This file contains the core logic for polling devices via SNMP,
 # collecting metrics, and storing them in the database. It uses the OID mappings
 from .oid_map import OID_MAP
+from .utils.constants import INTERFACE_SPEED_STANDARD_THRESHOLD, SNMP_DEFAULT_COMMUNITY
 from pysnmp.hlapi import (
     ObjectType, ObjectIdentity,
     getCmd, SnmpEngine,
@@ -8,11 +9,10 @@ from pysnmp.hlapi import (
     ContextData
 )
 from django.utils.timezone import now
-from .models import Metric
+from .models import Metric, MetricType
 
 
-
-def snmp_get(ip, oids, community="public"):
+def snmp_get(ip, oids, community=SNMP_DEFAULT_COMMUNITY):
     """
     Query one or more OIDs from a device via SNMP.
     
@@ -54,7 +54,36 @@ def snmp_get(ip, oids, community="public"):
     return results
 
 
+def get_or_create_metric_type(name, unit, description=""):
+    """
+    Get or create a MetricType. Used when polling devices.
+    
+    Args:
+        name: Metric type name (e.g., "CPU", "MEMORY")
+        unit: Unit of measurement (e.g., "%", "GB")
+        description: Optional description
+    
+    Returns:
+        MetricType object
+    """
+    metric_type, created = MetricType.objects.get_or_create(
+        name=name,
+        defaults={"unit": unit, "description": description}
+    )
+    return metric_type
+
+
 def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
+    """
+    Poll a device for metrics via SNMP.
+    
+    Args:
+        device: NetworkDevice instance
+        prev_in, prev_out, prev_time: Previous metric values for bandwidth calculation
+    
+    Returns:
+        tuple: (in_octets, out_octets, timestamp) or (None, None, now()) on error
+    """
     # --- Collect OIDs in one batch ---
     oids = [
         OID_MAP["uptime"]["standard"],
@@ -83,11 +112,17 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
     # --- Uptime ---
     uptime_ticks = results.get(OID_MAP["uptime"]["standard"])
     if uptime_ticks is not None:
-        Metric.objects.create(device_id=device, metric_type="uptime", value=uptime_ticks, units="ticks")
+        uptime_type = get_or_create_metric_type("Uptime", "ticks")
+        Metric.objects.create(
+            device_id=device,
+            metric_type=uptime_type,
+            value=uptime_ticks,
+            units="ticks"
+        )
 
     # --- Capacity (standard vs highcapacity) ---
     capacity_bps = results.get(OID_MAP["ifSpeed"]["standard"])
-    if capacity_bps and capacity_bps < 100_000_000:
+    if capacity_bps and capacity_bps < INTERFACE_SPEED_STANDARD_THRESHOLD:
         # Old router (<100 Mbps) → prefer standard
         pass
     else:
@@ -96,7 +131,13 @@ def poll_device(device, prev_in=None, prev_out=None, prev_time=None):
         if capacity_mbps:
             capacity_bps = capacity_mbps * 1_000_000  # convert Mbps → bps
 
-    Metric.objects.create(device_id=device, metric_type="capacity_bps", value=capacity_bps, units="bps")
+    capacity_type = get_or_create_metric_type("Capacity", "bps")
+    Metric.objects.create(
+        device_id=device,
+        metric_type=capacity_type,
+        value=capacity_bps,
+        units="bps"
+    )
 
     # --- In/Out Octets (standard vs highcapacity) ---
     in_octets = results.get(OID_MAP["ifInOctets"]["standard"])
