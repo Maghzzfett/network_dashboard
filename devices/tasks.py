@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 from django.utils import timezone
 
-@shared_task
+@shared_task # This celery decorater enables a function to be shared across the project, can be called from anywhere.
 def poll_all_devices():
     """
     Celery task: Poll all devices for metrics periodically

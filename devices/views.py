@@ -21,7 +21,8 @@ from .models import (
     CustomUser,
     NetworkDevice,
     Metric,
-    Alert
+    Alert,
+    MetricType
 )
 
 User = get_user_model() # Get the custom user model
@@ -90,7 +91,8 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
 
         # Retrieve previous counters if available
         prev_metric = (
-            Metric.objects.filter(device=device, metric_type="bandwidth_In")
+            # Get the most recent metric for this device and "Bandwidth In" type to calculate deltas
+            Metric.objects.filter(device=device, metric__name="Bandwidth In") # The double underscore allows us to filter on related model fields, in this case the MetricType name
             .order_by("-timestamp")
             .first()
         )

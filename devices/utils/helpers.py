@@ -43,7 +43,7 @@ class PermissionHelper:
 class DeviceHelper:
     """Centralized device update and response logic"""
     
-    @staticmethod
+    @staticmethod 
     def update_device_status(device, reachable):
         """
         Update device status and last_checked timestamp.
