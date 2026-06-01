@@ -8,6 +8,7 @@ from .permissions import DjangoGroupPermission
 from .utils.network_tools import ping_device, traceroute_device, PingException, TracerouteException
 from .utils.helpers import PermissionHelper, DeviceHelper
 from .poller import poll_device
+from .tasks import update_device_status
 from django.utils import timezone
 from django.utils.timezone import now
 
@@ -65,6 +66,34 @@ class NetworkDeviceViewSet(viewsets.ModelViewSet):
             return Response(DeviceHelper.get_device_status_response(device))
         except PingException as e:
             return Response({"error": str(e)}, status=400)
+    
+    @action(detail=False, methods=["get"])
+    def update_device_status(self, request):
+        """
+        Update status of all devices and return their current statuses.
+        Endpoint: GET /api/devices/update_device_status/
+        """
+        devices = NetworkDevice.objects.all()
+        updated_count = 0
+        device_statuses = []
+        
+        for device in devices:
+            try:
+                reachable = ping_device(device.ip_address)
+                DeviceHelper.update_device_status(device, reachable)
+                updated_count += 1
+            except Exception as e:
+                DeviceHelper.set_device_unknown(device)
+            
+            # Add device status to response
+            device_statuses.append(DeviceHelper.get_device_status_response(device))
+        
+        return Response({
+            "status": "success",
+            "updated_count": updated_count,
+            "total_devices": devices.count(),
+            "devices": device_statuses
+        })
     
     @action(detail=True, methods=["get"])
     def traceroute(self, request, pk=None):
